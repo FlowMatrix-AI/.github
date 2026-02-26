@@ -2,27 +2,27 @@
   <h1>FlowMatrix AI</h1>
   <p><strong>Intelligent Automation for Modern Businesses</strong></p>
   <a href="https://flowmatrixai.com">🌐 flowmatrixai.com</a> &nbsp;·&nbsp;
-  <a href="https://www.youtube.com/@flowmatrixai">▶ YouTube</a>
+  <a href="https://www.linkedin.com/company/flowmatrix-ai/">LinkedIn</a>
 </div>
 
 ---
 
-We build AI-powered workflow automation tools that help teams move faster, work smarter, and scale without limits. Our platform lets you design, deploy, and manage intelligent agents and automated workflows — no coding required.
+We build AI-powered workflow automation systems that help organizations streamline operations, mobilize their data, and deploy intelligent automation at scale. Our platform enables teams to design, orchestrate, and manage AI-driven processes through a unified control layer.
 
 ### What We Build
 
-- **AI Workflow Platform** — Visually compose multi-step automations using a drag-and-drop interface, with support for conditional logic, branching, and parallel execution.
-- **Intelligent Agents** — Deploy specialized AI agents capable of reasoning, research, content generation, data analysis, and web-based tasks.
-- **Human-in-the-Loop** — Build approval gates and review steps directly into workflows so your team stays in control.
-- **Integrations** — Connect to CRMs, communication tools, payment gateways, and hundreds of other services out of the box.
-- **Enterprise Security** — End-to-end encryption and enterprise-grade access controls protect every workflow and data exchange.
+- **AI Workflow Orchestration** — Design multi-step automations with conditional logic, branching, and parallel execution in a structured, scalable environment.
+- **Intelligent Agents** — Deploy domain-specific AI agents for research, content generation, data processing, analysis, and operational support.
+- **Human-in-the-Loop Controls** — Embed review gates, approvals, and oversight mechanisms directly into automated workflows.
+- **Systems Integration** — Connect CRMs, communication platforms, internal databases, and third-party services into cohesive automated pipelines.
+- **Security & Access Control** — Role-based access, controlled data flows, and secure infrastructure foundations suitable for business environments.
 
 ### Use Cases
 
-Lead generation · Content & marketing automation · Customer support · Document processing · Data enrichment · HR & recruiting workflows
+Operational automation · Data enrichment · Customer support workflows · Marketing systems · Document processing · Internal knowledge management · AI enablement initiatives
 
 ---
 
 <div align="center">
-  <em>Building the infrastructure for the AI-powered business.</em>
+  <em>Infrastructure for AI-native business operations.</em>
 </div>
