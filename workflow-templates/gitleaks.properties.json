@@ -1,0 +1,6 @@
+{
+  "name": "Gitleaks secret scan",
+  "description": "Scan the repository for committed secrets on every push and pull request, plus a weekly full-history sweep.",
+  "iconName": "octicon-shield-lock",
+  "categories": ["Security"]
+}
