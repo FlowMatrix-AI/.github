@@ -1,0 +1,8 @@
+# Shared pre-commit config — copy into a repo root and run `pre-commit install`
+# to block secrets before they are ever committed.
+# Docs: https://pre-commit.com
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks

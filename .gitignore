@@ -1,0 +1,4 @@
+# Environment files — keep real secrets out, track only the example
+.env
+.env.*
+!.env.example
