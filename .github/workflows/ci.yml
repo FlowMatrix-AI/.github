@@ -1,0 +1,20 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  # Standardized org-wide required check. This repo has no automated checks, so
+  # `ok` is a trivial always-pass gate to keep branch protection uniform.
+  # See FlowMatrix-AI/eng-governance for the convention.
+  ok:
+    name: ok
+    runs-on: ubuntu-latest
+    steps:
+      - name: No automated checks defined
+        run: echo "ok"
