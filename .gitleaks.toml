@@ -2,26 +2,33 @@
 # (.github/workflows/gitleaks.yml) when a repo has no local .gitleaks.toml.
 # A repo may commit its own .gitleaks.toml to override/extend this.
 #
-# Extends gitleaks' built-in rules and allowlists the known false positives
-# surfaced during the org secret sweep. Keep allowlist entries NARROW — tighten
-# as real findings are triaged during the advisory phase.
+# IMPORTANT: gitleaks honors the SINGULAR [allowlist] table — the plural
+# [[allowlists]] form is silently ignored here (verified on gitleaks 8.21.2).
+#
+# Extends gitleaks' built-in rules and allowlists known-safe patterns. Keep
+# entries NARROW; the truncated-placeholder rule below is generic and safe
+# because real secrets are never written ending in "...".
 
 [extend]
 useDefault = true
 
-[[allowlists]]
-description = "Known sweep false positives and non-secret fixtures"
-# Files/paths that legitimately contain secret-like strings
+[allowlist]
+description = "Fixtures, example env files, and truncated placeholders"
+# regexTarget = "line" makes `regexes` match the whole source line (not just the
+# captured secret) — needed for the truncated-placeholder rule.
+regexTarget = "line"
 paths = [
   '''(^|/)(test|tests|__tests__|fixtures|mocks|__mocks__)/''',
   '''(^|/)\.env\.example$''',
 ]
-# Specific non-secret patterns confirmed during the sweep
 regexes = [
-  '''AKIA[A-Z0-9]{16}\.\.\.''',   # truncated placeholder AWS key IDs (end in ...)
+  # Truncated placeholder values, e.g. `SUPABASE_SERVICE_ROLE_KEY=eyJ...` or
+  # `AWS_KEY=AKIA...` — any secret-looking line ending in an ellipsis is a doc
+  # example, never a live secret.
+  '''\.\.\.\s*$''',
 ]
 
 # NOTE: Wiki.js OIDC UUIDs (platform-docs / platform-infra) were confirmed
-# non-secret in the sweep. Prefer allowlisting them by path/commit once those
-# repos are scanned rather than a broad UUID regex here (a broad UUID allowlist
-# would mask real findings). Add a targeted entry during tuning if needed.
+# non-secret in the sweep. If they surface as findings, add a targeted path or
+# commit allowlist here during tuning rather than a broad UUID regex (which
+# would mask real findings).
