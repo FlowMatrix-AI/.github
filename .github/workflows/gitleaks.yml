@@ -1,0 +1,52 @@
+name: gitleaks
+
+# Reusable secret-scanning workflow for the org. Runs the gitleaks BINARY
+# (MIT-licensed, free) — NOT gitleaks/gitleaks-action, which requires a paid
+# GITLEAKS_LICENSE for organization repos.
+#
+# Consume from any repo with a caller workflow:
+#   jobs:
+#     gitleaks:
+#       uses: FlowMatrix-AI/.github/.github/workflows/gitleaks.yml@main
+
+on:
+  workflow_call:
+    inputs:
+      gitleaks-version:
+        description: gitleaks release version (no leading v)
+        type: string
+        default: "8.21.2"
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history so scheduled runs scan every commit
+
+      - name: Install gitleaks (binary)
+        run: |
+          v="${{ inputs.gitleaks-version }}"
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${v}/gitleaks_${v}_linux_x64.tar.gz" \
+            | tar -xz gitleaks
+          sudo mv gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+
+      - name: Use shared allowlist if repo has none
+        run: |
+          if [ ! -f .gitleaks.toml ]; then
+            curl -sSL "https://raw.githubusercontent.com/FlowMatrix-AI/.github/main/.gitleaks.toml" \
+              -o .gitleaks.toml || true
+          fi
+
+      - name: Scan
+        run: |
+          cfg=""
+          [ -f .gitleaks.toml ] && cfg="--config .gitleaks.toml"
+          # --redact: never print secret values to the (persisted) Actions log
+          gitleaks git --redact -v $cfg

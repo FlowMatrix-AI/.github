@@ -1,0 +1,27 @@
+# Shared org-wide gitleaks config. Consumed by the reusable workflow
+# (.github/workflows/gitleaks.yml) when a repo has no local .gitleaks.toml.
+# A repo may commit its own .gitleaks.toml to override/extend this.
+#
+# Extends gitleaks' built-in rules and allowlists the known false positives
+# surfaced during the org secret sweep. Keep allowlist entries NARROW — tighten
+# as real findings are triaged during the advisory phase.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Known sweep false positives and non-secret fixtures"
+# Files/paths that legitimately contain secret-like strings
+paths = [
+  '''(^|/)(test|tests|__tests__|fixtures|mocks|__mocks__)/''',
+  '''(^|/)\.env\.example$''',
+]
+# Specific non-secret patterns confirmed during the sweep
+regexes = [
+  '''AKIA[A-Z0-9]{16}\.\.\.''',   # truncated placeholder AWS key IDs (end in ...)
+]
+
+# NOTE: Wiki.js OIDC UUIDs (platform-docs / platform-infra) were confirmed
+# non-secret in the sweep. Prefer allowlisting them by path/commit once those
+# repos are scanned rather than a broad UUID regex here (a broad UUID allowlist
+# would mask real findings). Add a targeted entry during tuning if needed.
