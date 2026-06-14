@@ -1,26 +1,20 @@
-name: gitleaks
+name: secret-scan
+
+# Calls the org's reusable gitleaks workflow, which runs the gitleaks BINARY
+# (MIT-licensed, free). Do NOT use gitleaks/gitleaks-action@v2 — it requires a
+# paid GITLEAKS_LICENSE for organization repos.
 
 on:
   push:
+    branches: [main]
   pull_request:
-  workflow_dispatch:
   schedule:
-    # Weekly full-history sweep, Mondays 06:00 UTC
-    - cron: "0 6 * * 1"
+    - cron: "0 6 * * 1" # weekly full-history sweep, Mondays 06:00 UTC
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  scan:
-    name: Scan for committed secrets
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          # Full history so pushes and the scheduled run scan every commit
-          fetch-depth: 0
-      - name: gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  gitleaks:
+    uses: FlowMatrix-AI/.github/.github/workflows/gitleaks.yml@main

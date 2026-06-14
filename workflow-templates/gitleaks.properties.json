@@ -1,6 +1,6 @@
 {
-  "name": "Gitleaks secret scan",
-  "description": "Scan the repository for committed secrets on every push and pull request, plus a weekly full-history sweep.",
+  "name": "Secret scan (gitleaks)",
+  "description": "Calls the org reusable gitleaks workflow (free binary, not the paid action) to scan for committed secrets on push/PR plus a weekly full-history sweep.",
   "iconName": "octicon-shield-lock",
   "categories": ["Security"]
 }
