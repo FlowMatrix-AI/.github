@@ -17,4 +17,4 @@ permissions:
 
 jobs:
   gitleaks:
-    uses: FlowMatrix-AI/.github/.github/workflows/gitleaks.yml@9ee1d4b2d5a760b9e2fecec56621c64ce4130820 # main
+    uses: FlowMatrix-AI/.github/.github/workflows/gitleaks.yml@df3d01bfec5a7f61d34a52cc690e2eb1278aab7a # main
