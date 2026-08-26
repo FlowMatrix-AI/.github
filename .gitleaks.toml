@@ -54,7 +54,10 @@ description = "GoHighLevel Private Integration Token"
 # The `pit-` prefix makes this effectively false-positive-free, so it needs no
 # entropy threshold and no path scoping. `keywords` keeps the scan cheap: the
 # regex is only evaluated against lines containing this literal.
-regex = '''\bpit-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b'''
+# No trailing \b, deliberately: it makes the rule MISS a malformed token whose
+# final group runs to 13 hex chars, and for a scanner a miss is the costly
+# direction. Measured both ways before choosing.
+regex = '''\bpit-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'''
 keywords = ["pit-"]
 entropy = 0
 
