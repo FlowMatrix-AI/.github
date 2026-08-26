@@ -25,7 +25,45 @@ regexes = [
   '''\.\.\.\s*$''',
   # UUID assigned as a value (after = or :), e.g. Wiki.js `oidc_strategy_key`,
   # which Wiki.js 2.x generates as a non-secret UUID identifier (confirmed in
-  # platform-infra/platform-docs). Real credentials are not bare UUIDs. Narrow:
-  # the UUID must be the assigned value, not merely mentioned on the line.
+  # platform-infra/platform-docs). Narrow: the UUID must be the assigned value,
+  # not merely mentioned on the line.
+  #
+  # This entry used to be justified with "Real credentials are not bare UUIDs".
+  # That premise is false for at least one provider class this org handles:
+  # a GoHighLevel Private Integration Token is a UUID with a `pit-` prefix. The
+  # prefix is what saves it here — it sits between the delimiter and the hex, so
+  # this regex does not match and the rule below still fires. A credential
+  # written as a BARE uuid would still be suppressed. This line is scoped by
+  # shape, not by any guarantee about what a UUID can mean.
   '''[=:]\s*["'`]?[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}''',
 ]
+
+# --- Rules -----------------------------------------------------------------
+#
+# Gitleaks' default set has no detector for GoHighLevel Private Integration
+# Tokens. Four sat committed in FlowMatrix-AI/rutted-buck-landing from June
+# 2026 through a weekly full-history sweep that reported success on every run,
+# until a manual audit found them (.github#25, eng-governance#88).
+#
+# A PIT is a full API credential carrying whatever scopes it was issued with
+# (contacts.write, opportunities.write, …) against a specific GHL sub-account.
+
+[[rules]]
+id = "gohighlevel-pit"
+description = "GoHighLevel Private Integration Token"
+# The `pit-` prefix makes this effectively false-positive-free, so it needs no
+# entropy threshold and no path scoping. `keywords` keeps the scan cheap: the
+# regex is only evaluated against lines containing this literal.
+regex = '''\bpit-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b'''
+keywords = ["pit-"]
+entropy = 0
+
+  # No rule-scoped allowlist, deliberately. The obvious entries -- `pit-<uuid>`
+  # and `pit-xxxxxxxx-...` -- were written, then measured: neither can ever
+  # match, because `<`, `>` and `x` are not hex digits, so the regex already
+  # excludes every safe way of naming the shape. They were dead entries that
+  # looked like coverage.
+  #
+  # A doc example written with real hex digits is, by construction,
+  # indistinguishable from a live token -- so it SHOULD fail the scan. Write
+  # `pit-<uuid>` in prose instead of allowlisting a hex-shaped example.
