@@ -1,6 +1,22 @@
-# Shared org-wide gitleaks config. Consumed by the reusable workflow
-# (.github/workflows/gitleaks.yml) when a repo has no local .gitleaks.toml.
-# A repo may commit its own .gitleaks.toml to override/extend this.
+# Shared org-wide gitleaks config. The reusable workflow
+# (.github/workflows/gitleaks.yml) always fetches this file to
+# `.gitleaks.org.toml`, and uses it directly when a repo has no config of its
+# own.
+#
+# A repo that needs a local exception should INHERIT this file rather than copy
+# it, so that additions here — including new [[rules]] — keep reaching it:
+#
+#   [extend]
+#   path = ".gitleaks.org.toml"
+#
+#   [allowlist]
+#   regexTarget = "line"
+#   regexes = ['''<only this repo's exception>''']
+#
+# Do not set `useDefault` next to `path`: gitleaks refuses the combination
+# ("unable to load config due to extend.path and extend.useDefault being set")
+# and exits 1. The `useDefault = true` below chains through to the extending
+# config, so the built-in rules stay active. Verified on 8.16.0 and 8.21.2.
 #
 # IMPORTANT: gitleaks honors the SINGULAR [allowlist] table — the plural
 # [[allowlists]] form is silently ignored here (verified on gitleaks 8.21.2).
@@ -12,7 +28,7 @@
 useDefault = true
 
 [allowlist]
-description = "Fixtures, example env files, truncated placeholders, and UUID-valued config"
+description = "Fixtures, example env files, truncated placeholders, UUID-valued config, and well-known published sample tokens"
 regexTarget = "line"
 paths = [
   '''(^|/)(test|tests|__tests__|fixtures|mocks|__mocks__)/''',
@@ -36,6 +52,15 @@ regexes = [
   # written as a BARE uuid would still be suppressed. This line is scoped by
   # shape, not by any guarantee about what a UUID can mean.
   '''[=:]\s*["'`]?[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}''',
+  # The jwt.io sample token's signature. Its payload is the textbook
+  # {"sub":"1234567890","name":"John Doe","iat":1516239022}, signed with the
+  # published secret "your-256-bit-secret" — a public constant, not a
+  # credential. Vendored OpenAPI documents carry it as an example value
+  # (Vikunja's link-share token, today), and every connector repo vendors an
+  # upstream spec, so this recurs org-wide rather than in one repo.
+  # Matched by the exact signature, so no other JWT is exempted: a real token
+  # signed with a real secret has a different signature and still fires.
+  '''SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c''',
 ]
 
 # --- Rules -----------------------------------------------------------------

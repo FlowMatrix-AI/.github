@@ -37,11 +37,30 @@ jobs:
           sudo mv gitleaks /usr/local/bin/gitleaks
           gitleaks version
 
-      - name: Use shared allowlist if repo has none
+      # The org config is ALWAYS fetched, to a fixed filename, so a repo-local
+      # .gitleaks.toml can inherit it rather than fork it:
+      #
+      #   [extend]
+      #   path = ".gitleaks.org.toml"
+      #
+      #   [allowlist]
+      #   regexes = ['''<only this repo's exception>''']
+      #
+      # Do NOT also set `useDefault` alongside `path` — gitleaks rejects the
+      # combination outright ("unable to load config due to extend.path and
+      # extend.useDefault being set"). `useDefault = true` in the org config
+      # chains through, so the built-in rules stay active either way.
+      #
+      # A repo with no config of its own still gets the org one, as before.
+      - name: Fetch the org allowlist
         run: |
+          # -f: fail on an HTTP error instead of writing the error body into the
+          # config file. Unguarded, so a fetch failure fails the job rather than
+          # silently scanning with a different (or empty) ruleset.
+          curl -fsSL "https://raw.githubusercontent.com/FlowMatrix-AI/.github/main/.gitleaks.toml" \
+            -o .gitleaks.org.toml
           if [ ! -f .gitleaks.toml ]; then
-            curl -sSL "https://raw.githubusercontent.com/FlowMatrix-AI/.github/main/.gitleaks.toml" \
-              -o .gitleaks.toml || true
+            cp .gitleaks.org.toml .gitleaks.toml
           fi
 
       - name: Scan
