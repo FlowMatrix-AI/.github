@@ -17,12 +17,5 @@ permissions:
 
 jobs:
   gitleaks:
-    # Deliberately a branch ref, not a digest. renovate.json disables updates to
-    # this repo's self-reference (that self-chase is what reset stability-days on
-    # every downstream digest PR), so a digest pinned here would freeze and drift:
-    # a repo adopting the template later would inherit whatever gitleaks.yml
-    # looked like the day the pin was last touched. A local "./" ref is not an
-    # option either -- the Actions template picker copies this file verbatim into
-    # OTHER repos, where that path does not exist. An adopting repo runs its own
-    # Renovate, which pins this to a digest on its first run.
+    # Branch ref: your repo's Renovate pins this to a digest on its next run.
     uses: FlowMatrix-AI/.github/.github/workflows/gitleaks.yml@main
