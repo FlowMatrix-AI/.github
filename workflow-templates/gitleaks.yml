@@ -17,4 +17,8 @@ permissions:
 
 jobs:
   gitleaks:
-    uses: FlowMatrix-AI/.github/.github/workflows/gitleaks.yml@d2eab9f61423a2386e2f0acc504e3e541e5cb6ee # main
+    # Pinned by hand and frozen: renovate.json disables updates to this repo's
+    # self-reference. A local "./" ref cannot be used here -- the Actions template
+    # picker copies this file verbatim into OTHER repos. An adopting repo's own
+    # Renovate pins this forward on its first run.
+    uses: FlowMatrix-AI/.github/.github/workflows/gitleaks.yml@5eb6dcf14c9f9def31d9883fd217ab0a20841cab # main
