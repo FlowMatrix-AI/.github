@@ -1,6 +1,17 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["local>FlowMatrix-AI/renovate-config"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Track a version pinned as a `default:` on a workflow_call input, annotated with a `# renovate:` comment. Renovate ships customManagers:githubActionsVersions for exactly this comment shape, but its matchString only accepts a key ending in _VERSION, so a workflow input default never matches it and the version stays invisible. That is what happened to .github/workflows/gitleaks.yml: the gitleaks BINARY version is a string interpolated into a curl URL, so no manager could see it, the Dependency Dashboard listed only actions/checkout for that file, and the pin sat on 8.21.2 (2024-10-28) for a year while 27 built-in detection rules were added upstream -- including anthropic-api-key and anthropic-admin-api-key, which every repo in this org needs. Written by SHAPE rather than naming gitleaks, so any future workflow input annotated the same way is covered with no change here. customManagers from an extended preset and from this file CONCATENATE (verified against renovate 44.61.5: mergeChildConfig on customManagers returns parent entries then child entries), so this does not displace the `uv tool install` manager in the org preset. Note the org preset's automerge rules match specific managers and do not include custom.regex, so an update here opens a PR for review rather than automerging -- which is the right posture for the scanner that gates every repo. See #30.",
+      "managerFilePatterns": ["/^\\.github/workflows/.+\\.ya?ml$/"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>[a-zA-Z0-9-._]+?) depName=(?<depName>[^\\s]+?)(?: (?:lookupName|packageName)=(?<packageName>[^\\s]+?))?(?: versioning=(?<versioning>[^\\s]+?))?(?: extractVersion=(?<extractVersion>[^\\s]+?))?(?: registryUrl=(?<registryUrl>[^\\s]+?))?\\s+default:\\s*[\"']?(?<currentValue>.+?)[\"']?\\s"
+      ],
+      "versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}"
+    }
+  ],
   "packageRules": [
     {
       "description": "Never update this repository's references to ITSELF. workflow-templates/gitleaks.yml references FlowMatrix-AI/.github, and it cannot use a local './' ref the way .github/workflows/secret-scan.yml now does -- the Actions template picker copies that file verbatim into OTHER repos, where './.github/workflows/gitleaks.yml' would resolve to a file that does not exist. Left managed, Renovate chases this repo's own HEAD -- pinning the branch ref to a digest, then bumping that digest to each new HEAD it creates, week after week: of the 11 commits before this rule, 8 were that self-chase (a 9th was an unrelated actions/checkout bump). Each one also reset renovate/stability-days on every downstream 'flowmatrix-ai/.github digest' PR in the org, so five of them sat pending for 45-54 days and could never reach the 3-day soak that gates automerge. The template therefore references @main rather than a digest: a digest would be frozen by this rule and drift, so a repo adopting the template later would inherit whatever gitleaks.yml looked like the day the pin was last touched. An adopting repo runs its own Renovate, which pins the reference to a digest -- measured at 3-14 days across brand, servicetitan-client and the two marketfourseasons repos, being the Monday schedule plus the 3-day soak.",
