@@ -1,0 +1,4 @@
+# The org secret-scan ruleset and the reusable workflows are fetched or called
+# by every repo in the org, so a change here takes effect fleet-wide.
+/.gitleaks.toml @CameronBrooks11
+/.github/workflows/ @CameronBrooks11
