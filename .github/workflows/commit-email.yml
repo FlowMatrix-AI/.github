@@ -1,0 +1,77 @@
+name: commit-email
+
+# Reusable check for PUBLIC repos: every commit a pull request (or push) adds
+# must be authored and committed with a work address. Git identity is published
+# in every commit and cannot be corrected without rewriting history other people
+# have cloned, so on a public repo it is checked before merge.
+#
+# It checks only the commits being added, never existing history, so adopting
+# it does not require a rewrite. Bot identities GitHub itself assigns (Renovate
+# and other `[bot]` apps, Copilot, and `noreply@github.com` as the committer of a
+# web-UI merge) are allowed.
+#
+# Consume from a public repo with a caller workflow:
+#   on: [pull_request, push]
+#   jobs:
+#     commit-email:
+#       uses: FlowMatrix-AI/.github/.github/workflows/commit-email.yml@main
+#
+# Standard: FlowMatrix-AI eng-governance, commit identity on public repos.
+
+on:
+  workflow_call:
+    inputs:
+      domain:
+        description: Required email domain for human authors and committers
+        type: string
+        default: "flowmatrixai.com"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: commit-email
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - name: Check commit author and committer emails
+        env:
+          DOMAIN: ${{ inputs.domain }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          # A new branch's first push has an all-zero "before"; check HEAD alone.
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            range="$HEAD -1"
+          else
+            range="$BASE..$HEAD"
+          fi
+          allowed() {
+            case "$1" in
+              *@"$DOMAIN") return 0 ;;
+              noreply@github.com) return 0 ;;
+              *"[bot]@users.noreply.github.com") return 0 ;;
+              *+Copilot@users.noreply.github.com) return 0 ;;
+            esac
+            return 1
+          }
+          bad=0
+          # shellcheck disable=SC2086  # range is "A..B" or "SHA -1" by design
+          while IFS='|' read -r sha ae ce; do
+            for e in "$ae" "$ce"; do
+              if ! allowed "$e"; then
+                echo "::error::${sha:0:7} uses $e (want *@$DOMAIN)"
+                bad=1
+              fi
+            done
+          done < <(git log --format='%H|%ae|%ce' $range)
+          if [ "$bad" -ne 0 ]; then
+            echo "Fix: git config user.email <name>@$DOMAIN in this repo, then amend or rebase the listed commits before merging."
+            exit 1
+          fi
+          echo "All commits in $range use a *@$DOMAIN or bot identity."
