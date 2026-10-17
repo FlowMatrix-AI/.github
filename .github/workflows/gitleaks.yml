@@ -60,16 +60,67 @@ jobs:
       # chains through, so the built-in rules stay active either way.
       #
       # A repo with no config of its own still gets the org one, as before.
-      - name: Fetch the org allowlist
+      #
+      # The ruleset is fetched AT THE REF THIS WORKFLOW WAS CALLED AT, not from
+      # `main`. That is the whole point of the step, so do not "simplify" it
+      # back to a branch:
+      #
+      # A caller pins `gitleaks.yml@<digest>`. That digest already freezes the
+      # detector — `gitleaks-version` is an input default in THIS file — but
+      # while the config was fetched from `main` it did not freeze the rules the
+      # detector ran with. So the pin was half a pin, and the uncovered half
+      # failed OPEN: broadening the shared [allowlist] shrank detection in every
+      # calling repo on its next scan, with no commit, no PR and no review
+      # anywhere else, and every required check stayed green. A weakening of
+      # detection has to be visible somewhere, and the only place a consumer can
+      # see it is a change to a ref it controls.
+      #
+      # `job.workflow_sha` is the commit SHA of the file that defines the
+      # current job — this reusable workflow, at the caller's ref. For a caller
+      # on `@main` or a branch it resolves to that branch's current head, so an
+      # unpinned caller behaves exactly as before; only a pinned caller changes,
+      # and it changes to what its pin already claimed.
+      #
+      # The cost, stated plainly: a fix to the shared ruleset no longer reaches
+      # a pinned repo until that repo's pin moves (Renovate's digest PR). A
+      # repo sitting on a stale pin now visibly scans with a stale ruleset
+      # instead of a stale binary running current rules.
+      - name: Fetch the org ruleset at this workflow's ref
+        env:
+          CONFIG_SHA: ${{ job.workflow_sha }}
+          CONFIG_REF: ${{ job.workflow_ref }}
         run: |
+          set -euo pipefail
+          # Fail closed on an empty SHA rather than falling back to a branch:
+          # an unknown ruleset version is the one thing this step must not scan
+          # with.
+          : "${CONFIG_SHA:?job.workflow_sha was empty; refusing to resolve the org ruleset}"
+          if [ -f .gitleaks.toml ]; then local_config=yes; else local_config=no; fi
           # -f: fail on an HTTP error instead of writing the error body into the
           # config file. Unguarded, so a fetch failure fails the job rather than
           # silently scanning with a different (or empty) ruleset.
-          curl -fsSL "https://raw.githubusercontent.com/FlowMatrix-AI/.github/main/.gitleaks.toml" \
+          curl -fsSL "https://raw.githubusercontent.com/FlowMatrix-AI/.github/${CONFIG_SHA}/.gitleaks.toml" \
             -o .gitleaks.org.toml
-          if [ ! -f .gitleaks.toml ]; then
+          if [ "$local_config" = no ]; then
             cp .gitleaks.org.toml .gitleaks.toml
           fi
+          # Record which ruleset this run actually scanned with, so a change in
+          # detection behaviour is legible from the run itself and not only from
+          # a diff in another repository. Printed to the log as well as the job
+          # summary: the log is reachable over the API, so the ruleset a repo
+          # scanned with can be audited across the fleet without opening 69
+          # run pages. The summary is for humans, the log line for scripts.
+          echo "gitleaks-ruleset commit=${CONFIG_SHA} sha256=$(sha256sum .gitleaks.org.toml | cut -d' ' -f1) local-config=${local_config}"
+          {
+            echo "### gitleaks ruleset"
+            echo
+            echo "| | |"
+            echo "| --- | --- |"
+            echo "| workflow ref | \`${CONFIG_REF}\` |"
+            echo "| org ruleset commit | \`${CONFIG_SHA}\` |"
+            echo "| org ruleset sha256 | \`$(sha256sum .gitleaks.org.toml | cut -d' ' -f1)\` |"
+            echo "| repo-local \`.gitleaks.toml\` | ${local_config} |"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Scan
         run: |

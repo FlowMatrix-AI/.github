@@ -28,9 +28,9 @@ shared secret-scanning plant. It holds two reusable workflows
 (`.gitleaks.toml`), the Actions workflow-template entry that seeds new repos,
 the shared `.pre-commit-config.yaml`, and the community health files
 (`SECURITY.md`, `PULL_REQUEST_TEMPLATE.md`, `ISSUE_TEMPLATE/`) plus
-`profile/README.md`. **68 of the org's 70 active repos call `gitleaks.yml`**
-from their own `.github/workflows/secret-scan.yml` — every repo but
-`lead-intake` and this one, which calls it through a local ref — and the
+`profile/README.md`. **Every active repo in the org but this one calls
+`gitleaks.yml`** from its own `.github/workflows/secret-scan.yml` — 69 of 70,
+this repo being the exception because it calls it through a local ref — and the
 resulting `gitleaks / gitleaks` status is a required check, so this repo gates
 merges fleet-wide. `commit-email.yml` has no caller in the org today.
 
@@ -77,13 +77,21 @@ how the pin sat on 8.21.2 for a year.
 - **Do not make this repo private.** Three things break, and the third is
   silent: the org profile goes dark, the default community health files stop
   applying org-wide, and the unauthenticated fetch of `.gitleaks.toml` 404s so
-  the required `gitleaks / gitleaks` check fails in all 68 callers.
-- **Do not read a caller's digest pin as freezing behaviour.** Callers pin
-  `gitleaks.yml` by commit digest, but the workflow fetches `.gitleaks.toml`
-  from `main` on **every** run. Merging a change to the ruleset changes what
-  every repo detects on its next scan, with no PR anywhere else — and a
-  broadened allowlist **fails open**: checks stay green while detection
-  shrinks. Treat an allowlist edit as a fleet-wide security change.
+  the required `gitleaks / gitleaks` check fails in every caller.
+- **Do not fetch `.gitleaks.toml` from `main`.** It is fetched at
+  `job.workflow_sha`, the commit of the reusable workflow file being run, so a
+  caller's digest pin covers the ruleset as well as the workflow code. Fetching
+  from a branch instead made the pin half a pin, and the uncovered half failed
+  **open**: merging a broadened allowlist here shrank detection in every calling
+  repo on its next scan, with no commit or review anywhere else, while every
+  required check stayed green. A caller on `@main` is unaffected either way.
+  The cost of the pin is that a ruleset fix reaches a pinned repo only when its
+  pin moves; a repo on a stale pin was already running a stale **binary**, so
+  pinning makes the staleness visible in one place rather than half-hidden.
+- **Still treat a ruleset edit as a fleet-wide security change.** The pin means
+  a weakening lands repo by repo as pins move, not instantly — it does not mean
+  it is reviewed. Code-owner review on `.gitleaks.toml` is not required by any
+  ruleset yet (eng-governance #111).
 - **Do not add a repo-local `.gitleaks.toml` without inheriting.** A local
   config *replaces* the org ruleset and the scan still shows green. Use
   `[extend] path = ".gitleaks.org.toml"`. Never set `useDefault` alongside
