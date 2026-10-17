@@ -106,7 +106,11 @@ jobs:
           fi
           # Record which ruleset this run actually scanned with, so a change in
           # detection behaviour is legible from the run itself and not only from
-          # a diff in another repository.
+          # a diff in another repository. Printed to the log as well as the job
+          # summary: the log is reachable over the API, so the ruleset a repo
+          # scanned with can be audited across the fleet without opening 69
+          # run pages. The summary is for humans, the log line for scripts.
+          echo "gitleaks-ruleset commit=${CONFIG_SHA} sha256=$(sha256sum .gitleaks.org.toml | cut -d' ' -f1) local-config=${local_config}"
           {
             echo "### gitleaks ruleset"
             echo
