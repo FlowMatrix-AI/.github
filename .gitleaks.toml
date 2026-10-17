@@ -95,3 +95,58 @@ entropy = 0
   # A doc example written with real hex digits is, by construction,
   # indistinguishable from a live token -- so it SHOULD fail the scan. Write
   # `pit-<uuid>` in prose instead of allowlisting a hex-shaped example.
+
+# Gitleaks' default set also has no detector for GoHighLevel inbound webhook
+# capability URLs, a different credential class from a PIT and a live exposure
+# of the same kind: a client site served two of them in its production HTML,
+# and the weekly full-history sweep reported success on every run because
+# nothing in the ruleset described the shape.
+#
+# A capability URL IS a credential: possession is authorisation. The receiving
+# end verifies no signature and checks no origin or sender identity, so anyone
+# holding the URL can post to the workflow it fires — injecting leads,
+# triggering whatever SMS/email sends and automations that workflow drives
+# against that sub-account. It carries no `secret`/`token`/`key` in its name
+# and reads as an ordinary endpoint, which is exactly how it reaches
+# client-side HTML.
+
+[[rules]]
+id = "gohighlevel-webhook-url"
+description = "GoHighLevel inbound webhook capability URL"
+# `keywords` keeps the scan cheap the same way as the rule above: the regex is
+# only evaluated against lines containing this literal, and `webhook-trigger`
+# is specific to this vendor's URL shape.
+#
+# Measured choices:
+# * The host is matched at the registrable domain rather than pinned to the
+#   `services.` subdomain, so a capability URL served from another
+#   `*.leadconnectorhq.com` host still fires. For a scanner a miss is the
+#   costly direction.
+# * The location id is `[A-Za-z0-9]{15,30}`, not the exactly-20 characters both
+#   measured URLs carried, so a longer agency- or company-scoped id still
+#   fires. It still cannot match a documentation placeholder: `<` and `>` are
+#   outside the class, so `/hooks/<locationId>/webhook-trigger/<uuid>` does not
+#   match — measured, not assumed.
+# * No trailing `\b`, deliberately, for the same reason as the rule above.
+regex = '''(?i)\bleadconnectorhq\.com/hooks/[A-Za-z0-9]{15,30}/webhook-trigger/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'''
+keywords = ["webhook-trigger"]
+entropy = 0
+
+  # The shared [allowlist] above was checked against this rule rather than
+  # assumed harmless, and the two entries that could have masked it behave
+  # differently:
+  #
+  # * The UUID-as-a-value entry does NOT mask it. That regex requires the hex
+  #   to sit immediately after `=` or `:` (with an optional quote); here the
+  #   UUID is the final path segment of a URL, preceded by `/`, so it never
+  #   matches — confirmed against both real-world shapes.
+  # * The truncated-placeholder entry (`\.\.\.\s*$`) DOES mask a finding when a
+  #   full capability URL sits on a line that happens to end in an ellipsis,
+  #   because `regexTarget = "line"` allowlists the whole line. Left as is: the
+  #   entry is doing what it exists for, and narrowing it would cost more
+  #   coverage elsewhere than it buys here. Write `/webhook-trigger/<uuid>` in
+  #   prose instead of relying on a trailing ellipsis.
+  #
+  # No rule-scoped allowlist, for the reason given above: every safe way of
+  # writing the shape (`<locationId>`, `<uuid>`, `xxxx`) is already outside the
+  # regex, so an entry for one would be dead code that looked like coverage.
