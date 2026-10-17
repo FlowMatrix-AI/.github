@@ -28,9 +28,9 @@ shared secret-scanning plant. It holds two reusable workflows
 (`.gitleaks.toml`), the Actions workflow-template entry that seeds new repos,
 the shared `.pre-commit-config.yaml`, and the community health files
 (`SECURITY.md`, `PULL_REQUEST_TEMPLATE.md`, `ISSUE_TEMPLATE/`) plus
-`profile/README.md`. **68 of the org's 70 active repos call `gitleaks.yml`**
-from their own `.github/workflows/secret-scan.yml` — every repo but
-`lead-intake` and this one, which calls it through a local ref — and the
+`profile/README.md`. **Every active repo in the org but this one calls
+`gitleaks.yml`** from its own `.github/workflows/secret-scan.yml` — 69 of 70,
+this repo being the exception because it calls it through a local ref — and the
 resulting `gitleaks / gitleaks` status is a required check, so this repo gates
 merges fleet-wide. `commit-email.yml` has no caller in the org today.
 
@@ -77,7 +77,7 @@ how the pin sat on 8.21.2 for a year.
 - **Do not make this repo private.** Three things break, and the third is
   silent: the org profile goes dark, the default community health files stop
   applying org-wide, and the unauthenticated fetch of `.gitleaks.toml` 404s so
-  the required `gitleaks / gitleaks` check fails in all 68 callers.
+  the required `gitleaks / gitleaks` check fails in every caller.
 - **Do not fetch `.gitleaks.toml` from `main`.** It is fetched at
   `job.workflow_sha`, the commit of the reusable workflow file being run, so a
   caller's digest pin covers the ruleset as well as the workflow code. Fetching
