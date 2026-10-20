@@ -127,4 +127,9 @@ jobs:
           cfg=""
           [ -f .gitleaks.toml ] && cfg="--config .gitleaks.toml"
           # --redact: never print secret values to the (persisted) Actions log
-          gitleaks git --redact -v $cfg
+          # --log-opts replaces gitleaks' defaults (--all --full-history
+          # --diff-filter=tuxdb), so restate them. --diff-merges=first-parent
+          # adds what git log -p otherwise omits: a merge's own diff, so a
+          # secret introduced only in a merge resolution is scanned.
+          gitleaks git --redact -v $cfg \
+            --log-opts="--all --full-history --diff-merges=first-parent --diff-filter=tuxdb"
