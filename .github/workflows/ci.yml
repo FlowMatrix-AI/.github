@@ -9,12 +9,37 @@ permissions:
   contents: read
 
 jobs:
-  # Standardized org-wide required check. This repo has no automated checks, so
-  # `ok` is a trivial always-pass gate to keep branch protection uniform.
-  # See FlowMatrix-AI/eng-governance for the convention.
+  # Standardized org-wide required check; see FlowMatrix-AI/eng-governance for
+  # the convention. The tests run inside `ok` itself rather than in a job it
+  # `needs`: a required check whose dependency failed reports as skipped, and
+  # GitHub counts a skipped required check as passing.
   ok:
     name: ok
     runs-on: ubuntu-latest
     steps:
-      - name: No automated checks defined
-        run: echo "ok"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # Same binary version the reusable workflow scans with: read from its
+      # input default (the one Renovate tracks) rather than pinned twice.
+      - name: Install gitleaks and PyYAML
+        run: |
+          set -euo pipefail
+          v=$(sed -n 's/^ *default: "\([0-9.]*\)".*/\1/p' .github/workflows/gitleaks.yml)
+          : "${v:?could not read the gitleaks version from gitleaks.yml}"
+          curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v${v}/gitleaks_${v}_linux_x64.tar.gz" \
+            | tar -xz gitleaks
+          sudo mv gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+          python3 -c 'import yaml' 2>/dev/null || sudo apt-get install -y -qq python3-yaml
+
+      # Every tests/*.test.sh, so a new test cannot be added and never run.
+      - name: Run tests
+        run: |
+          set -uo pipefail
+          rc=0
+          for t in tests/*.test.sh; do
+            echo "::group::$t"
+            bash "$t" || rc=1
+            echo "::endgroup::"
+          done
+          exit "$rc"
