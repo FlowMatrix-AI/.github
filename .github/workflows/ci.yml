@@ -32,8 +32,14 @@ jobs:
           gitleaks version
           python3 -c 'import yaml' 2>/dev/null || sudo apt-get install -y -qq python3-yaml
 
-      - name: Test commit-email check
-        run: bash tests/commit-email.test.sh
-
-      - name: Test markdown-escaped secret scan
-        run: bash tests/gitleaks-md-escaped.test.sh
+      # Every tests/*.test.sh, so a new test cannot be added and never run.
+      - name: Run tests
+        run: |
+          set -uo pipefail
+          rc=0
+          for t in tests/*.test.sh; do
+            echo "::group::$t"
+            bash "$t" || rc=1
+            echo "::endgroup::"
+          done
+          exit "$rc"
