@@ -128,3 +128,57 @@ jobs:
           [ -f .gitleaks.toml ] && cfg="--config .gitleaks.toml"
           # --redact: never print secret values to the (persisted) Actions log
           gitleaks git --redact -v $cfg
+
+      # gitleaks matches a token's exact shape, so a Markdown export that writes
+      # `ghp\_...` for `ghp_...` slips past the Scan above. Unescape only the
+      # ADDED lines that carry an escape and scan them again. stdin mode has no
+      # file paths, so the org [allowlist] paths do not apply here, and
+      # findings carry no commit or file; the index maps them back.
+      # !cancelled(): still report when the Scan above already failed.
+      - name: Scan markdown-escaped lines
+        if: ${{ !cancelled() }}
+        run: |
+          set -euo pipefail
+          # stdin findings are fingerprinted by their line in this stream, which
+          # shifts with every commit, so a `:rule:line` ignore entry would
+          # silence whatever secret lands on that line next.
+          if [ -f .gitleaksignore ] && grep -q '^:' .gitleaksignore; then
+            echo "::error::.gitleaksignore has a stdin-style (:rule:line) entry; these are not stable"
+            exit 1
+          fi
+          # Byte semantics. In a UTF-8 locale `.` does not match an invalid byte, so
+          # a line with a Latin-1 byte before the escape would be silently dropped.
+          # Under C, [[:punct:]] is exactly the 32 ASCII punctuation characters,
+          # the set CommonMark lets a backslash escape. The exporter's escape set
+          # has grown over time (`$`, `:`, `=` appeared later), so take all of it.
+          export LC_ALL=C
+          tmp="${RUNNER_TEMP:-$(mktemp -d)}"
+          # Keep only ADDED content lines carrying a markdown escape, and record which
+          # commit and file each came from (one index line per emitted line), so a
+          # finding's StartLine maps back to commit:path. --diff-merges=combined:
+          # without it a merge shows no diff, and content introduced only by a
+          # merge resolution (a `++` line) is never seen.
+          git log -p --all --diff-merges=combined --format='commit %H' \
+            | awk -v idx="$tmp/md-escaped.idx" '
+                /^commit [0-9a-f]+$/ { c = $2; next }
+                /^diff --(git|combined) / { hdr = 1; next }
+                hdr && /^\+\+\+ / { f = substr($0, 5); sub(/^b\//, "", f); sub(/\t$/, "", f); next }
+                /^@@/ { hdr = 0; next }
+                !hdr && /^\+.*\\[[:punct:]]/ { print; print c "\t" f > idx }
+              ' \
+            | sed -E 's/\\+([[:punct:]])/\1/g' \
+            > "$tmp/md-escaped.txt"
+          touch "$tmp/md-escaped.idx"
+          echo "markdown-escaped added lines: $(wc -l < "$tmp/md-escaped.txt")"
+          rc=0
+          gitleaks stdin --redact -v --config .gitleaks.toml \
+            --report-format json --report-path "$tmp/md-escaped.json" \
+            < "$tmp/md-escaped.txt" || rc=$?
+          if [ "$rc" -ne 0 ] && [ -s "$tmp/md-escaped.json" ]; then
+            echo "markdown-escaped findings (commit, file, rule):"
+            jq -r '.[] | "\(.StartLine)\t\(.RuleID)"' "$tmp/md-escaped.json" \
+              | while IFS=$'\t' read -r n rule; do
+                  printf '%s\t%s\n' "$(sed -n "${n}p" "$tmp/md-escaped.idx")" "$rule"
+                done
+          fi
+          exit "$rc"
