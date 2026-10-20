@@ -1,15 +1,16 @@
 ## Summary
 
-<!-- What does this PR do? One or two sentences. -->
+<!-- What changed and why. -->
 
-## Type
+## Changes
 
-- [ ] Feature
-- [ ] Bug fix
-- [ ] Refactor / cleanup
-- [ ] Documentation
-- [ ] Dependencies / CI
+-
 
-## Notes
+## Testing
 
-<!-- Anything the reviewer should know — context, trade-offs, follow-up work. -->
+<!-- How was this verified? -->
+
+## Checklist
+
+- [ ] CI (`ok`) is green
+- [ ] Docs / README updated if needed
